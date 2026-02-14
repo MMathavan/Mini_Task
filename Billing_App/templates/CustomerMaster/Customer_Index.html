@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Customer Master</h3>
+    <a href="{% url 'customer_add' %}" class="btn btn-success btn-sm">+ Add Customer</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-8">
+        <input type="text" class="form-control" name="search" value="{{ search_query }}" placeholder="Search by customer name or email">
+    </div>
+    <div class="col-md-2">
+        <select class="form-select" name="per_page" onchange="this.form.submit()">
+            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+            <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+    </div>
+    <div class="col-md-2 d-grid">
+        <button type="submit" class="btn btn-secondary">Search</button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th class="text-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in customers %}
+                <tr>
+                    <td>{{ item.CUSTNAME }}</td>
+                    <td>{{ item.CUSTEMAIL }}</td>
+                    <td>{{ item.get_DISPSTATUS_display }}</td>
+                    <td class="text-center">
+                        <a href="{% url 'customer_edit' item.pk %}" class="btn btn-warning btn-sm">Edit</a>
+                        <a href="{% url 'customer_delete' item.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4" class="text-center">No customers found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<nav>
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if customers.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page=1&search={{ search_query }}&per_page={{ per_page }}">First</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ customers.previous_page_number }}&search={{ search_query }}&per_page={{ per_page }}">Previous</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ customers.number }} of {{ customers.paginator.num_pages }}</span></li>
+        {% if customers.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ customers.next_page_number }}&search={{ search_query }}&per_page={{ per_page }}">Next</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ customers.paginator.num_pages }}&search={{ search_query }}&per_page={{ per_page }}">Last</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endblock %}

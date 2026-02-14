@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h3 class="mb-3">Delete Customer</h3>
+<p>Are you sure you want to delete <strong>{{ object.CUSTNAME }}</strong>?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger btn-sm">Yes, Delete</button>
+    <a href="{% url 'customer_index' %}" class="btn btn-secondary btn-sm">Cancel</a>
+</form>
+{% endblock %}

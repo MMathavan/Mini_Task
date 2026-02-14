@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h3 class="mb-4">Edit Denomination</h3>
+<form method="post">
+    {% csrf_token %}
+    <div class="row g-3">
+        <div class="col-md-6">{{ form.DENOMVALUE.label_tag }} {{ form.DENOMVALUE }}</div>
+        <div class="col-md-6">{{ form.DISPSTATUS.label_tag }} {{ form.DISPSTATUS }}</div>
+    </div>
+    <button type="submit" class="btn btn-warning btn-sm mt-4">Update</button>
+    <a href="{% url 'denomination_index' %}" class="btn btn-secondary btn-sm mt-4">Cancel</a>
+</form>
+{% endblock %}

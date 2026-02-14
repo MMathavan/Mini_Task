@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Past Payments</h3>
+    <a href="{% url 'invoice_add' %}" class="btn btn-success btn-sm">+ Add Invoice</a>
+</div>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-3">
+        <input
+            type="text"
+            class="form-control"
+            name="customer_name"
+            value="{{ customer_name }}"
+            placeholder="Filter by customer name"
+        >
+    </div>
+    <div class="col-md-3">
+        <input
+            type="text"
+            class="form-control"
+            name="customer_email"
+            value="{{ customer_email }}"
+            placeholder="Filter by customer email"
+        >
+    </div>
+    <div class="col-md-2">
+        <input
+            type="date"
+            class="form-control"
+            name="from_date"
+            value="{{ from_date }}"
+            placeholder="From date"
+        >
+    </div>
+    <div class="col-md-2">
+        <input
+            type="date"
+            class="form-control"
+            name="to_date"
+            value="{{ to_date }}"
+            placeholder="To date"
+        >
+    </div>
+    <div class="col-md-1">
+        <select class="form-select" name="per_page" onchange="this.form.submit()">
+            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+            <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
+    </div>
+    <div class="col-md-1 d-grid">
+        <button type="submit" class="btn btn-secondary">Search</button>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Invoice No</th>
+                <th>Customer Name</th>
+                <th>Customer Email</th>
+                <th>Net Amount</th>
+                <th>Paid Amount</th>
+                <th>Balance</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for invoice in invoices %}
+                <tr>
+                    <td>{{ invoice.INVOICEID }}</td>
+                    <td>{{ invoice.CUSTNAME }}</td>
+                    <td>{{ invoice.CUSTEMAIL }}</td>
+                    <td>{{ invoice.NETAMT|floatformat:2 }}</td>
+                    <td>{{ invoice.PAIDAMT|floatformat:2 }}</td>
+                    <td>{{ invoice.BALANCEAMT|floatformat:2 }}</td>
+                    <td>{{ invoice.PRCSDATE|date:"d-m-Y h:i A" }}</td>
+                    <td class="d-flex gap-1">
+                        <a href="{% url 'invoice_detail' invoice.pk %}" class="btn btn-primary btn-sm">View</a>
+                        <form method="post" action="{% url 'invoice_delete' invoice.pk %}" onsubmit="return confirm('Delete this invoice?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No past payments found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<nav>
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+        {% if invoices.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page=1&customer_name={{ customer_name }}&customer_email={{ customer_email }}&from_date={{ from_date }}&to_date={{ to_date }}&per_page={{ per_page }}">First</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ invoices.previous_page_number }}&customer_name={{ customer_name }}&customer_email={{ customer_email }}&from_date={{ from_date }}&to_date={{ to_date }}&per_page={{ per_page }}">Previous</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ invoices.number }} of {{ invoices.paginator.num_pages }}</span></li>
+        {% if invoices.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ invoices.next_page_number }}&customer_name={{ customer_name }}&customer_email={{ customer_email }}&from_date={{ from_date }}&to_date={{ to_date }}&per_page={{ per_page }}">Next</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ invoices.paginator.num_pages }}&customer_name={{ customer_name }}&customer_email={{ customer_email }}&from_date={{ from_date }}&to_date={{ to_date }}&per_page={{ per_page }}">Last</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endblock %}

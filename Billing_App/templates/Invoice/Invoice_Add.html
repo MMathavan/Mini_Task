@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h3 class="mb-4">Billing Page</h3>
+
+<form method="post" id="invoiceForm">
+    {% csrf_token %}
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <label class="form-label">Customer Name</label>
+            <input
+                type="text"
+                id="customer_name"
+                name="customer_name"
+                class="form-control"
+                list="customerList"
+                placeholder="Type customer name"
+                required
+            >
+            <datalist id="customerList">
+                {% for customer in customers %}
+                    <option
+                        value="{{ customer.CUSTNAME }}"
+                        data-email="{{ customer.CUSTEMAIL }}"
+                    ></option>
+                {% endfor %}
+            </datalist>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Customer Email</label>
+            <input type="email" id="customer_email" name="customer_email" class="form-control" placeholder="Email ID" required>
+        </div>
+    </div>
+
+    <hr>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Bill Section</h5>
+        <button type="button" id="addRowBtn" class="btn btn-secondary btn-sm">Add New</button>
+    </div>
+
+    <div id="billRows" class="mb-4">
+        <div class="row g-2 bill-row mb-2">
+            <div class="col-md-7">
+                <select name="product_id[]" class="form-select product-select" required>
+                    <option value="">Select Product</option>
+                    {% for product in products %}
+                        <option value="{{ product.PRODID }}" data-stock="{{ product.PROAVASTOCK }}">
+                            {{ product.PRODCODE }} - {{ product.PRODNAME }} (Stock: {{ product.PROAVASTOCK }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="number" min="1" name="quantity[]" class="form-control quantity-input" placeholder="Quantity" required>
+            </div>
+            <div class="col-md-1 d-flex align-items-center">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-row">X</button>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+    <h5 class="mb-3">Denominations</h5>
+    <div class="row g-2 mb-4">
+        {% for denom in denominations %}
+            <div class="col-md-3">
+                <label class="form-label">{{ denom.DENOMVALUE }}</label>
+                <input
+                    type="number"
+                    min="0"
+                    value="0"
+                    name="denom_{{ denom.DENOMID }}"
+                    class="form-control denom-input"
+                    data-value="{{ denom.DENOMVALUE }}"
+                >
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">Cash paid by customer</label>
+            <input type="text" id="cash_paid" class="form-control" readonly>
+        </div>
+        <div class="col-md-8 text-end">
+            <a href="{% url 'invoice_index' %}" class="btn btn-secondary btn-sm">Cancel</a>
+            <button type="submit" class="btn btn-success btn-sm">Generate Bill</button>
+        </div>
+    </div>
+</form>
+
+<script>
+    (function () {
+        const billRows = document.getElementById('billRows');
+        const addRowBtn = document.getElementById('addRowBtn');
+        const cashPaidInput = document.getElementById('cash_paid');
+        const customerNameInput = document.getElementById('customer_name');
+        const customerEmailInput = document.getElementById('customer_email');
+        const customerOptions = Array.from(document.querySelectorAll('#customerList option'));
+
+        function updateCashPaid() {
+            let total = 0;
+            document.querySelectorAll('.denom-input').forEach((input) => {
+                const value = Number(input.dataset.value || 0);
+                const count = Number(input.value || 0);
+                total += value * count;
+            });
+            cashPaidInput.value = total.toFixed(2);
+        }
+
+        function getSelectedProducts() {
+            return Array.from(document.querySelectorAll('.product-select'))
+                .map((select) => select.value)
+                .filter((value) => value);
+        }
+
+        function refreshProductOptions() {
+            const selects = document.querySelectorAll('.product-select');
+            const selectedValues = getSelectedProducts();
+            selects.forEach((select) => {
+                const current = select.value;
+                Array.from(select.options).forEach((option) => {
+                    if (!option.value) {
+                        option.hidden = false;
+                        return;
+                    }
+                    option.hidden = selectedValues.includes(option.value) && option.value !== current;
+                });
+            });
+        }
+
+        function createRow() {
+            const firstSelect = billRows.querySelector('.product-select');
+            const row = document.createElement('div');
+            row.className = 'row g-2 bill-row mb-2';
+            row.innerHTML = `
+                <div class="col-md-7">
+                    ${firstSelect.outerHTML.replace('required', '')}
+                </div>
+                <div class="col-md-4">
+                    <input type="number" min="1" name="quantity[]" class="form-control quantity-input" placeholder="Quantity" required>
+                </div>
+                <div class="col-md-1 d-flex align-items-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-row">X</button>
+                </div>
+            `;
+            billRows.appendChild(row);
+            refreshProductOptions();
+        }
+
+        billRows.addEventListener('click', (event) => {
+            if (!event.target.classList.contains('remove-row')) {
+                return;
+            }
+            const rows = billRows.querySelectorAll('.bill-row');
+            if (rows.length === 1) {
+                return;
+            }
+            event.target.closest('.bill-row').remove();
+            refreshProductOptions();
+        });
+
+        billRows.addEventListener('change', (event) => {
+            if (event.target.classList.contains('product-select')) {
+                refreshProductOptions();
+            }
+        });
+
+        addRowBtn.addEventListener('click', createRow);
+        document.querySelectorAll('.denom-input').forEach((input) => {
+            input.addEventListener('input', updateCashPaid);
+        });
+
+        customerNameInput.addEventListener('input', () => {
+            const typed = customerNameInput.value.trim().toLowerCase();
+            if (!typed) {
+                customerEmailInput.value = '';
+                return;
+            }
+            const matched = customerOptions.find(
+                (option) => option.value.trim().toLowerCase() === typed
+            );
+            if (matched) {
+                customerEmailInput.value = matched.dataset.email || '';
+            }
+        });
+
+        updateCashPaid();
+        refreshProductOptions();
+    })();
+</script>
+{% endblock %}
